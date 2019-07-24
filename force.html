@@ -1,0 +1,252 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta http-equiv="X-UA-Compatible" content="ie=edge">
+  <title>Document</title>
+  <style>
+    .warp {
+      border: solid 2px green;
+      width: 2000px;
+      height: 2000px;
+      margin: 10px auto;
+    }
+
+    .point {
+      stroke: red;
+      stroke-width: 2;
+    }
+
+    line {
+      stroke: blue;
+      stroke-width: 2;
+    }
+  </style>
+</head>
+
+<body>
+  <div class="warp">
+
+  </div>
+  <button id="zoom_in">+</button>
+  <button id="zoom_out">-</button>
+  <script src="lib/d3.js"></script>
+  <script>
+
+
+    var deep = 5;
+    /*
+      parent 父级
+      text   文本
+      level  级别
+    */
+    function createNode(parent, id, level, seq) {
+      var node = {
+        pid: parent ? parent.id : 0,
+        text: '知识点' + id,
+        level: level,
+        children: [],
+        id: id,
+        deep: deep,
+        seq: seq
+      }
+      return node;
+    }
+    var n = 0;
+
+    function createJson(parent, num, index, level) {
+      n++;
+      level++;
+      let temp = [];
+      if (level > deep) {
+        // return temp;
+      } else {
+        for (var k = 0; k < num; k++) {
+          temp.push(createJson(createNode(parent, 'l_' + level + '_' + k + '_' + n, level, n), num, k, level));
+        }
+      }
+      parent.children = temp;
+      return parent;
+    }
+    var json = createJson(createNode(null, 'root', 1, n), 2, 0, 1);
+    console.log(json);
+    // var arr = [];
+    function getNodesByLevel(level, node) {
+      var temp = [];
+      if (node.level === level - 1) {
+        temp = node.children;
+      } else {
+        for (var k = 0; k < node.children.length; k++) {
+          temp = temp.concat(getNodesByLevel(level, node.children[k]));
+        }
+      }
+      return temp;
+    }
+    console.log(getNodesByLevel(3, json));
+
+    class D3Force {
+      constructor(warp) {
+        this.warp = warp
+        let rect = document.getElementsByClassName(warp)[0].getBoundingClientRect();
+        this.width = rect.width;
+        this.height = rect.height;
+        this.simulation = d3.forceSimulation()
+          .force("link", d3.forceLink().id(function (d) { return d.id; }))
+          .force('charge', d3.forceManyBody())
+
+          // .force('charge_force', d3.forceManyBody().strength(-100))
+          // .force('center_force', d3.forceCenter(this.width / 2, this.height / 2))
+          .force('center_force', d3.forceCenter(this.width / 2, this.height / 2))
+          .on('tick', this._ticked.bind(this))
+        this.tick = 0;
+        this._createSvg();
+      }
+
+      render() {
+        this.chartData = data
+        this._addNodes()
+          ._addLinks()
+          ._drawLinks()
+          ._drawNodes()
+      }
+
+      _createSvg() {
+        let svg = d3.select('.' + this.warp)
+          .append('svg')
+          .classed('chart', true)
+          .attr('width', this.width)
+          .attr('height', this.height)
+        this.svg = svg;
+        return this
+      }
+
+      _addNodes() {
+        this.simulation.nodes(this.chartData.nodes)
+        console.log(this.chartData.nodes);
+        return this
+      }
+
+      _addLinks() {
+        const linkForce = d3.forceLink(this.chartData.links)
+        this.simulation.force('link', linkForce)
+
+        return this
+      }
+
+      _drawNodes() {
+        const nodeGroup = this.svg.append('g')
+          .classed('nodes', true)
+        // this.nodes = nodeGroup.selectAll('circle')
+        //   .data(this.chartData.nodes)
+        //   .enter()
+        //   .append('circle')
+        //   .classed('circle', true)
+        //   .attr('r', 10)
+
+        this.nodes = nodeGroup.selectAll('g.g-point')
+          .data(this.chartData.nodes)
+          .enter()
+          .append('g')
+          .attr('class', 'g-point');
+        this.nodes.append('circle')
+          .attr('class', 'point')
+          .attr('fill', 'black')
+          .attr("r", function (d) {
+            return 20;
+          })
+        this.nodes.append('text')
+          .attr('class', 'point-text')
+          .attr('text-anchor', 'middle')
+          .attr('dominant-baseline', 'middle')
+          .attr('fill', 'red')
+          .style('font-size', '14px')
+          .attr('dy', 3)
+        if (this.links) {
+          this.links.attr('x1', d => d.source.x)
+            .attr('y1', d => d.source.y)
+            .attr('x2', d => d.target.x)
+            .attr('y2', d => d.target.y)
+        }
+        if (this.nodes) {
+          // console.log(this.nodes.selectAll('circle.point')).data(this.chartData.nodes)
+          this.nodes.selectAll('circle.point').attr("cx", d => d.x)
+            .attr("cy", d => d.y);
+          this.nodes.selectAll('text.point-text').text(function (d) { return d.name })
+            .attr('fill', 'red')
+            .attr('x', function (d) { return d.x - d.name.length })
+            .attr('y', function (d) { return d.y })
+        }
+        return this
+      }
+
+      _drawLinks() {
+        const linkGroup = this.svg.append('g')
+          .classed('links', true)
+        this.links = linkGroup.selectAll('line')
+          .data(this.chartData.links)
+          .enter()
+          .append('line')
+          .classed('link', true)
+
+        return this
+      }
+
+      _ticked() {
+        // if (this.tick < 100) {
+          if (this.links) {
+            this.links.attr('x1', d => d.source.x)
+              .attr('y1', d => d.source.y)
+              .attr('x2', d => d.target.x)
+              .attr('y2', d => d.target.y)
+          }
+          if (this.nodes) {
+            // console.log(this.nodes.selectAll('circle.point')).data(this.chartData.nodes)
+            this.nodes.selectAll('circle.point').attr("cx", d => d.x)
+              .attr("cy", d => d.y);
+            this.nodes.selectAll('text.point-text').text(function (d) { return d.name })
+              .attr('fill', 'red')
+              .attr('x', function (d) { return d.x - d.name.length })
+              .attr('y', function (d) { return d.y })
+          }
+          this.tick++;
+        // } else {
+          // this.simulation.stop()
+        // }
+      }
+    }
+
+    const data = {
+      nodes: [
+      ],
+      links: [
+      ]
+    }
+    function mockData(l, pre) {
+      for (let k = 0; k < l; k++) {
+        data.nodes.push({ name: '知识点' + pre })
+        // data.nodes=[{ name: '知识点' + pre }]
+      }
+      for (let k = 0; k < l - 1; k++) {
+        for (let i = 1; i < 3; i++) {
+          // let topoint = (Math.random() * l).toFixed(0);
+          if (k + i < 60) {
+            data.links.push({ source: k, target: k + i })
+          }
+        }
+        // data.links=[{ source: k, target: k + 1 }]
+      }
+    }
+    mockData(60, 'p');
+    const force = new D3Force('warp');
+    force.render(data)
+    // let c = 0;
+    // setInterval(() => {
+    //   mockData(1,c)
+    //   c++;
+    //   force.render(data)
+    // }, 1000);
+    
+
+  </script>

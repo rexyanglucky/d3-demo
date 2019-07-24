@@ -1,0 +1,147 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta http-equiv="X-UA-Compatible" content="ie=edge">
+  <title>Document</title>
+  <style>
+    .warp{
+      border: solid 2px green;
+      width: 800px;
+      height: 400px;
+      margin: 100px auto;
+    }
+    .point{
+      background: red;
+      color: red;
+    }
+  </style>
+</head>
+
+<body>
+  <div class="warp">
+
+  </div>
+  <script src="lib/d3.js"></script>
+  <script>
+    /*
+      parent 父级
+      text   文本
+      level  级别
+    */
+    function createNode(parent, id, level) {
+      var node = {
+        pid: parent ?  parent.id : 0,
+        text: '知识点' + id,
+        level: level,
+        children: [],
+        id: id
+      }
+      return node;
+    }
+    var n = 0;
+    function createJson(parent, num, index, level){
+      n++;
+      level ++;
+      let temp = [];
+      if(level >= 5){
+        // return temp;
+      } else {
+        for(var k = 0;k<num; k++){
+          temp.push(createJson(createNode(parent, 'l_' + level + '_' + k + '_' + n, level),num, k, level));
+        }
+      }
+      parent.children = temp;
+      return parent;
+    }
+    var json = createJson(createNode(null, 'root', 1), 2, 0, 1);
+    // var arr = [];
+    function getNodesByLevel(level, node) {
+      var temp = [];
+      if(node.level === level - 1){
+        temp = node.children;
+      } else {
+        for (var k = 0; k < node.children.length; k++) {
+          temp = temp.concat(getNodesByLevel(level, node.children[k]));
+        }
+      }
+      return temp;
+    }
+    console.log(getNodesByLevel(3, json));
+
+    function Draw(warp){
+      var svg = d3.select(warp).append('svg');
+
+      let rect = document.getElementsByClassName('warp')[0].getBoundingClientRect();
+      svg.attr('width', rect.width);
+      svg.attr('height', rect.height);
+      this.svg = svg;
+    }
+    function Point(svg, option) {
+      this.r = 10;
+      this.c = {x: 50, y: 50}; // x,y
+      this.left = [this.c[0] + this.r, this.c[1]];
+      this.right = [this.c[0] - this.r, this.c[1]];
+      var draw = function() {
+        svg.append("circle") // <-B
+        .attr("cx", this.c.x)
+        .attr("cy", this.c.y)
+        .attr("r", 50);
+      }
+      draw.call(this);
+    }
+    Draw.prototype.DrawPoint = function(option){
+      new Point(this.svg, option);
+    }
+    Draw.prototype.DrawLine = function(p1, p2){
+      
+    }
+    Draw.prototype.Render = function(data){
+      this.svg.selectAll('circle.point')
+        .data(data)
+        .enter()
+        .append('circle')
+        .attr('class', 'point')
+      
+      this.svg.selectAll('circle.point')
+        .data(data)
+        .attr("cx", function(d, i){
+            if(i === 0){
+              return 50;
+            }
+            return i * 200;
+          }
+        )
+        .attr("cy", 50)
+        .attr("r", 1e-6)
+        .transition()
+        .attr("r", 50)
+      this.svg.selectAll('circle.point')
+        .data(data)
+        .exit()
+        .remove()
+    }
+
+    var data = [1,2,3]
+    var d = new Draw('.warp');
+    var a = 1;
+    var t = setInterval(() => {
+      a++;
+      // console.log(a)
+      data.shift();
+      data.push(Math.round(Math.random() * 100));
+      if(a === 20){
+        data = [];
+        clearInterval(t)
+      }
+      d.Render(data);
+    }, 1000);
+
+    
+
+  </script>
+</body>
+
+</html>

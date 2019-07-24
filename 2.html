@@ -1,0 +1,321 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta http-equiv="X-UA-Compatible" content="ie=edge">
+  <title>Document</title>
+  <style>
+    .warp {
+      border: solid 2px green;
+      width: 1000px;
+      height: 1000px;
+      margin: 10px auto;
+    }
+
+    .point {
+      stroke: red;
+      fill: orange;
+      stroke-width: 2;
+
+    }
+
+    .rel {
+      stroke: blue;
+      stroke-width: 2;
+    }
+  </style>
+</head>
+
+<body>
+  <div class="warp">
+
+  </div>
+  <button id="zoom_in">+</button>
+  <button id="zoom_out">-</button>
+  <script src="lib/d3.js"></script>
+  <script>
+    var deep = 5;
+    /*
+      parent 父级
+      text   文本
+      level  级别
+    */
+    function createNode(parent, id, level, seq) {
+      var node = {
+        pid: parent ? parent.id : 0,
+        text: '知识点' + id,
+        level: level,
+        children: [],
+        id: id,
+        deep: deep,
+        seq: seq
+      }
+      return node;
+    }
+    var n = 0;
+
+    function createJson(parent, num, index, level) {
+      n++;
+      level++;
+      let temp = [];
+      if (level > deep) {
+        // return temp;
+      } else {
+        for (var k = 0; k < num; k++) {
+          temp.push(createJson(createNode(parent, 'l_' + level + '_' + k + '_' + n, level, n), num, k, level));
+        }
+      }
+      parent.children = temp;
+      return parent;
+    }
+    var json = createJson(createNode(null, 'root', 1, n), 2, 0, 1);
+    console.log(json);
+    // var arr = [];
+    function getNodesByLevel(level, node) {
+      var temp = [];
+      if (node.level === level - 1) {
+        temp = node.children;
+      } else {
+        for (var k = 0; k < node.children.length; k++) {
+          temp = temp.concat(getNodesByLevel(level, node.children[k]));
+        }
+      }
+      return temp;
+    }
+    console.log(getNodesByLevel(3, json));
+
+
+    function Point(node, index, svg) {
+      var r = 20;
+      var d = 2 * r;
+      var padding_top = 30;
+      var padding_left = 70;
+      var dl = node.deep - node.level;
+      var dp = d + padding_top;
+      // var y = (dl * dp) + (index * Math.pow(2, dl) * dp) + r;
+      // 计算y的值 二叉树
+      var y = r + (((Math.pow(2, dl) - 1) * dp) / 2) + (Math.pow(2, dl) * dp * index);
+      var x = (d + padding_left) * dl + r;
+      this.r = r;
+      this.c = { x: x, y: y }; // x,y
+      // this.node = node;
+      this.id = 'draw_' + node.id;
+      // 和当前节点关联的ID
+      this.rid = 'draw_' + node.pid;
+      this.getRelNodes = function (pNodes) {
+        var fnodes = pNodes.filter(item => {
+          var r = this.rid === item.id;
+          console.log(r);
+          return r;
+        })
+        console.log(fnodes)
+        return fnodes;
+      }
+
+
+      // this.left = [this.c[0] + this.r, this.c[1]];
+      // this.right = [this.c[0] - this.r, this.c[1]];
+    }
+    function PointTree(warp, data) {
+      this.paintData = [];
+      this.lines = [];
+      var svg = d3.select(warp).append('svg');
+      window.svg = svg;
+      let rect = document.getElementsByClassName('warp')[0].getBoundingClientRect();
+      svg.attr('width', rect.width);
+      svg.attr('height', rect.height);
+      this.svg = svg;
+      function getNodesByLevel(level, node) {
+        var temp = [];
+        if (level === 1) {
+          return [node];
+        }
+        if (node.level === level - 1) {
+          temp = node.children;
+        } else {
+          for (var k = 0; k < node.children.length; k++) {
+            temp = temp.concat(getNodesByLevel(level, node.children[k]));
+          }
+        }
+        return temp;
+      }
+      this.handleData = function (level) {
+        var arr = getNodesByLevel(level, data);
+        var pdata = arr.map((item, index) => {
+          var p = new Point(item, index, this.svg);
+          return p;
+        });
+
+        this.paintData.forEach((item, index) => {
+          var rel = item.getRelNodes(pdata);
+          if (rel.length) {
+            var ldata = rel.map((n, index) => {
+              return { x1: item.c.x, y1: item.c.y, x2: n.c.x, y2: n.c.y };
+            })
+            this.lines = this.lines.concat(ldata);
+          }
+        })
+        console.log(this.lines);
+        this.paintData = this.paintData.concat(pdata);
+      }
+
+    }
+    PointTree.prototype.Render = function () {
+      var paintData = this.paintData;
+      var g = this.svg.selectAll('circle.point')
+        .data(this.paintData)
+        .enter()
+        .append('g');
+      this.svg.selectAll("line.rel")
+        .data(this.lines)
+        .enter()
+        .append('line')
+        .attr('class', 'rel') // <-A
+        .attr("x1", function (d) {
+          return d.x1;
+        })
+        .attr("y1", function (d) {
+          return d.y1;
+        })
+        // .transition()
+        .attr("x2", function (d) {
+          return d.x2
+        })
+        .attr("y2", function (d) {
+          return d.y2;
+        })
+      g.append('circle')
+        .attr('class', 'point')
+        .attr("cx", function (d, i) {
+          return d.c.x;
+        }
+        )
+        .attr("cy", function (d, i) {
+          return d.c.y;
+        })
+        // .attr("r", 1e-6)
+        // .transition()
+        .attr("r", function (d, i) {
+          return d.r;
+        })
+      g.append('text')
+        .text(function (d) { return d.id })
+        .attr('fill', 'red')
+        .attr('x', function (d) { return d.c.x })
+        .attr('y', function (d) { return d.c.y })
+        // .attr('text-anchor', 'middle')
+        .style('font-size', '20px')
+        .attr('dy', 8)
+
+
+      // this.svg.selectAll("line.rel").transition();
+      // .data(this.paintData)
+
+      // this.svg.selectAll('circle.point')
+      //   .data(this.paintData)
+      //   .attr("cx", function(d, i){
+      //       return d.c.x;
+      //     }
+      //   )
+      //   .attr("cy", function(d, i){
+      //     return d.c.y;
+      //   })
+      //   .attr("r", 1e-6)
+      //   .transition()
+      //   .attr("r", function(d, i){
+      //     return d.r;
+      //   })
+      this.svg.selectAll('circle.point')
+        .data(this.paintData)
+        .exit()
+        .remove()
+    }
+
+    var p = new PointTree('.warp', json);
+    var t = 5;
+    var timer = setInterval(() => {
+      if (t < 1) {
+        clearInterval(timer);
+      } else {
+        p.handleData(t);
+        p.Render();
+        t--;
+      }
+    }, 1000);
+
+
+    function zoomed() {
+      svg.attr("transform",
+        "translate(" + zoom.translate() + ")" +
+        "scale(" + zoom.scale() + ")"
+      );
+    }
+
+    function interpolateZoom(translate, scale) {
+      var self = this;
+      return d3.transition().duration(350).tween("zoom", function () {
+        var iTranslate = d3.interpolate(zoom.translate(), translate),
+          iScale = d3.interpolate(zoom.scale(), scale);
+        return function (t) {
+          zoom
+            .scale(iScale(t))
+            .translate(iTranslate(t));
+          zoomed();
+        };
+      });
+    }
+
+    function zoomClick() {
+      var clicked = d3.event.target,
+        direction = 1,
+        factor = 0.2,
+        target_zoom = 1,
+        center = [1000 / 2, 1000 / 2],
+        extent = zoom.scaleExtent(),
+        translate = zoom.translate(),
+        translate0 = [],
+        l = [],
+        view = { x: translate[0], y: translate[1], k: zoom.scale() };
+
+      d3.event.preventDefault();
+      direction = (this.id === 'zoom_in') ? 1 : -1;
+      target_zoom = zoom.scale() * (1 + factor * direction);
+
+      if (target_zoom < extent[0] || target_zoom > extent[1]) { return false; }
+
+      translate0 = [(center[0] - view.x) / view.k, (center[1] - view.y) / view.k];
+      view.k = target_zoom;
+      l = [translate0[0] * view.k + view.x, translate0[1] * view.k + view.y];
+
+      view.x += center[0] - l[0];
+      view.y += center[1] - l[1];
+
+      interpolateZoom([view.x, view.y], view.k);
+    }
+    var zoom = d3.zoom().scaleExtent([1, 8]).on("zoom", zoomed);
+
+    function zoomed() {
+      svg.attr("transform",
+        "translate(" + zoom.translate() + ")" +
+        "scale(" + zoom.scale() + ")"
+      );
+    }
+
+    function interpolateZoom(translate, scale) {
+      var self = this;
+      return d3.transition().duration(350).tween("zoom", function () {
+        var iTranslate = d3.interpolate(zoom.translate(), translate),
+          iScale = d3.interpolate(zoom.scale(), scale);
+        return function (t) {
+          zoom
+            .scale(iScale(t))
+            .translate(iTranslate(t));
+          zoomed();
+        };
+      });
+    }
+    d3.selectAll('button').on('click', zoomClick);
+
+  </script>

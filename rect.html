@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta http-equiv="X-UA-Compatible" content="ie=edge">
+  <title>Document</title>
+  <style>
+    .warp {
+      border: solid 2px green;
+      width: 2000px;
+      height: 2000px;
+      margin: 10px auto;
+    }
+
+    .point {
+      stroke: red;
+      stroke-width: 2;
+    }
+
+    line {
+      stroke: blue;
+      stroke-width: 2;
+    }
+  </style>
+</head>
+
+<body>
+  <div class="warp">
+
+  </div>
+  <button id="zoom_in">+</button>
+  <button id="zoom_out">-</button>
+  <script src="lib/d3.js"></script>
+  <script>
+    function createData(){
+            let data = [];
+            for(let k = 0; k < 10; k++){
+            let p = {
+                    name: '知识点1'
+                    children: [
+                            {
+                                    name: '题模1',
+                                    state: '1', // 0 尚未学习 1 已学习 2 已掌握
+                            },
+                            {
+                                    name: '题模1',
+                                    state: '1', // 0 尚未学习 1 已学习 2 已掌握
+                            },
+                            {
+                                    name: '题模1',
+                                    state: '1', // 0 尚未学习 1 已学习 2 已掌握
+                            },
+                            {
+                                    name: '题模1',
+                                    state: '1', // 0 尚未学习 1 已学习 2 已掌握
+                            },
+                            {
+                                    name: '题模1',
+                                    state: '1', // 0 尚未学习 1 已学习 2 已掌握
+                            },
+                            {
+                                    name: '题模1',
+                                    state: '1', // 0 尚未学习 1 已学习 2 已掌握
+                            }
+                    ]
+            }
+            data.push(p);                    
+            }
+        return data;
+    }
+    let d = createData();
+    class D3Force{
+      constructor(warp) {
+       
+        this.warp = warp
+        let rect = document.getElementsByClassName(warp)[0].getBoundingClientRect();
+        this.width = rect.width;
+        this.height = rect.height;
+      }
+       
+       
+      _createSvg() {
+        let svg = d3.select('.' + this.warp)
+          .append('svg')
+          .classed('chart', true)
+          .attr('width', this.width)
+          .attr('height', this.height)
+        this.svg = svg;
+        return this;
+      }
+      render() {
+        this.chartData = data
+        this._addNodes()
+          ._addLinks()
+          ._drawLinks()
+          ._drawNodes()
+      }
+
+      _addNodes() {
+        this.simulation.nodes(this.chartData.nodes)
+        console.log(this.chartData.nodes);
+        return this
+      }
+
+    }
+  </script>
+</body>
+</html>

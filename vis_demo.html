@@ -1,0 +1,105 @@
+<html>
+
+<head>
+  <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/vis/4.21.0/vis.min.js"></script>
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/vis/4.21.0/vis.min.js" rel="stylesheet" type="text/css" />
+
+  <style type="text/css">
+    body {
+      overflow: hidden;
+    }
+
+    #mynetwork {
+      position: absolute;
+      width: 100%;
+      height: 100%;
+      border: 1px solid lightgray;
+      background: linear-gradient(black, blue)
+    }
+  </style>
+</head>
+
+<body>
+  <div id="mynetwork"></div>
+
+  <script type="text/javascript">
+
+
+    function mockData(l, pre) {
+      const data = {
+        nodes: [
+        ],
+        links: [
+        ]
+      }
+      for (let k = 0; k < l; k++) {
+        if (k % 2 === 0) {
+          data.nodes.push({ 
+            id: k, label: '知识点' + k,
+            shape: 'dot', size: 5, color: 'rgba(82,213,248)', 
+            font: { size: 12, color: '#fff', face: 'courier' }
+          });
+        } else {
+          data.nodes.push({ 
+            id: k, label: '知识点' + k,
+            shape: 'dot', size: 10, color: 'lightblue', 
+            font: { size: 12, color: '#fff', face: 'courier' }
+          });
+        }
+      }
+      for (let k = 0; (k < l - 1) ; k++) {
+        for (let i = 1; i < 3; i++) {
+          let topoint = (Math.random() * l).toFixed(0);
+          if (i === 1) {
+            data.links.push({ from: k, to: topoint, length: 200, color: { color: '#fff' },  "smooth": false })
+          } else {
+            data.links.push({ from: k, to: topoint, length: 200, color: { color: 'rgba(255,255,255,0.6)' }, "smooth": false })
+          }
+        }
+      }
+      // data.links.push({from: 1, to})
+      return data;
+    }
+    const mock = mockData(30, 'p')
+    var nodes = new vis.DataSet(mock.nodes);
+    var edges = new vis.DataSet(mock.links);
+    // // create an array with nodes
+    // var nodes = new vis.DataSet([
+    //   { id: 1, label: 'node\none', shape: 'box', color: '#97C2FC' },
+    //   { id: 2, label: 'node\ntwo', shape: 'circle', color: '#FFFF00' },
+    //   { id: 3, label: 'node\nthree', shape: 'diamond', color: '#FB7E81' },
+    //   { id: 4, label: 'node\nfour', shape: 'dot', size: 10, color: '#7BE141' },
+    //   { id: 5, label: 'node\nfive', shape: 'ellipse', color: '#6E6EFD' },
+    //   { id: 6, label: 'node\nsix', shape: 'star', color: '#C2FABC' },
+    //   { id: 7, label: 'node\nseven', shape: 'triangle', color: '#FFA807' },
+    //   { id: 8, label: 'node\neight', shape: 'triangleDown', color: '#6E6EFD' }
+    // ]);
+
+    // // create an array with edges
+    // var edges = new vis.DataSet([
+    //   { from: 1, to: 8, color: { color: 'red' } },
+    //   { from: 1, to: 3, color: 'rgb(20,24,200)' },
+    //   { from: 1, to: 2, color: { color: 'rgba(30,30,30,0.2)', highlight: 'blue' } },
+    //   { from: 2, to: 4, color: { inherit: 'to' } },
+    //   { from: 2, to: 5, color: { inherit: 'from' } },
+    //   { from: 5, to: 6, color: { inherit: 'both' } },
+    //   { from: 6, to: 7, color: { color: '#ff0000', opacity: 0.3 } },
+    //   { from: 6, to: 8, color: { opacity: 0.3 } },
+    // ]);
+
+    // create a network
+    var container = document.getElementById('mynetwork');
+    var data = {
+      nodes: nodes,
+      edges: edges
+    };
+    var options = {
+      nodes: {
+        shape: 'circle'
+      }
+    };
+    var network = new vis.Network(container, data, options);
+  </script>
+</body>
+
+</html>
